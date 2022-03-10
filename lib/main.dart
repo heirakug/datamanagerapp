@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:async' show Future;
 import 'package:flutter/services.dart' show rootBundle;
-
-Future<String> loadAsset() async {
-  return rootBundle.loadString('assets/soracom_acc_payload.csv');
-}
+import 'CsvData.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,9 +8,9 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    loadAsset().then((t) => {print(t)});
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -34,12 +30,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+  Future<List<List<String>>> getCsvData(String path) async {
+    //List<CsvData> list = [];
+    List<List<String>> list = [[]];
+    String csv = await rootBundle.loadString(path);
+
+    for (String line in csv.split('\n')) {
+      //print(line);
+      //List rows = line.split(','); // split by comma
+      list[counter] = line.split(',');
+      //CsvData rowData = CsvData(time: rows[0], imsi: rows[1], lat: rows[2]);
+      list.add(list[counter]);
+    }
+    return list;
   }
 
   @override
@@ -48,24 +53,23 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      body: FutureBuilder(
+        future: getCsvData('assets/soracom_acc_payload.csv'),
+        builder:
+            (BuildContext context, AsyncSnapshot<List<List<String>>> snapshot) {
+          final list = snapshot.data as List<List<String>>;
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+          return ListView(children: <Widget>[
+            for (var i = 1; i < list.length - 1; i++)
+              ListTile(
+                leading: Text(list[i][0]),
+                title: Text(list[i][1]),
+                subtitle: Text(list[i][2]),
+              ),
+          ]);
+        },
       ),
     );
   }
